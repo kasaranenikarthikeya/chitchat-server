@@ -26,19 +26,23 @@ connections: Dict[str, WebSocket] = {}
 load_dotenv()
 DATABASE_URL = os.getenv("DATABASE_URL")
 SECRET_KEY = os.getenv("SECRET_KEY", "your-secure-secret-key-1234567890")
-CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:3000",
-"https://chitchat-client-nato.onrender.com").split(",")
+# Fixed CORS_ORIGINS to use a single default value
+CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:3000,https://chitchat-client-nato.onrender.com").split(",")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 1440
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
+# Validate environment variables
 if not DATABASE_URL:
     logger.error("DATABASE_URL not set in .env")
     raise ValueError("DATABASE_URL not set in .env")
 
 if not SECRET_KEY or SECRET_KEY == "your-secure-secret-key-1234567890":
     logger.warning("Using default SECRET_KEY. Set a secure SECRET_KEY in .env for production.")
+
+# Log CORS origins for debugging
+logger.info(f"CORS_ORIGINS: {CORS_ORIGINS}")
 
 # Lifespan context manager
 @asynccontextmanager
