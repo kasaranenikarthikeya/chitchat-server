@@ -26,7 +26,7 @@ connections: Dict[str, WebSocket] = {}
 load_dotenv()
 DATABASE_URL = os.getenv("DATABASE_URL")
 SECRET_KEY = os.getenv("SECRET_KEY", "your-secure-secret-key-1234567890")
-CORS_ORIGINS = os.getenv("CORS_ORIGINS", "https://your-frontend-service.onrender.com").split(",")
+CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:3000,https://your-frontend-service.onrender.com").split(",")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 1440
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -93,7 +93,9 @@ app = FastAPI(lifespan=lifespan)
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=CORS_ORIGINS,
+    allow_origins=["http://localhost:3000",
+        "https://chitchat-client-nato.onrender.com",  # Your frontend URL
+        "https://chitchat-server-emw5.onrender.com"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
