@@ -1,0 +1,7 @@
+fastapi
+uvicorn
+websockets  # Add this explicitly
+python-jose[cryptography]
+passlib[bcrypt]
+asyncpg
+python-dotenv
