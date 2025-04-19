@@ -12,6 +12,7 @@ from dotenv import load_dotenv
 from contextlib import asynccontextmanager
 import logging
 import asyncio
+import uvicorn
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -25,7 +26,8 @@ connections: Dict[str, WebSocket] = {}
 load_dotenv()
 DATABASE_URL = os.getenv("DATABASE_URL")
 SECRET_KEY = os.getenv("SECRET_KEY", "your-secure-secret-key-1234567890")
-CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")
+CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:3000",
+"https://chitchat-client-nato.onrender.com").split(",")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 1440
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -182,6 +184,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
 # Register endpoint
 @app.post("/register")
 async def register(user: UserCreate):
+    logger.info(f"Register attempt for username: {user.username}")
     async with db_pool.acquire() as conn:
         try:
             hashed_password = pwd_context.hash(user.password)
@@ -189,26 +192,34 @@ async def register(user: UserCreate):
                 "INSERT INTO users (username, password_hash) VALUES ($1, $2)",
                 user.username, hashed_password
             )
-            logger.info(f"User registered: {user.username}")
-            return {"msg": "User created"}
+            logger.info(f"User registered successfully: {user.username}")
+            return {"msg": "User created successfully"}
         except asyncpg.exceptions.UniqueViolationError:
             logger.warning(f"Username already exists: {user.username}")
             raise HTTPException(status_code=400, detail="Username already exists")
+        except Exception as e:
+            logger.error(f"Registration error: {str(e)}")
+            raise HTTPException(status_code=500, detail="Internal server error")
 
 # Login endpoint
 @app.post("/login")
 async def login(form_data: LoginRequest):
+    logger.info(f"Login attempt for username: {form_data.username}")
     async with db_pool.acquire() as conn:
-        user = await conn.fetchrow(
-            "SELECT id, username, password_hash FROM users WHERE username = $1",
-            form_data.username
-        )
-        if not user or not pwd_context.verify(form_data.password, user["password_hash"]):
-            logger.warning(f"Login failed: Invalid credentials for '{form_data.username}'")
-            raise HTTPException(status_code=401, detail="Invalid credentials")
-        token = create_access_token({"sub": str(user["id"])})
-        logger.info(f"User logged in: {user['username']}")
-        return {"access_token": token, "token_type": "bearer"}
+        try:
+            user = await conn.fetchrow(
+                "SELECT id, username, password_hash FROM users WHERE username = $1",
+                form_data.username
+            )
+            if not user or not pwd_context.verify(form_data.password, user["password_hash"]):
+                logger.warning(f"Login failed: Invalid credentials for '{form_data.username}'")
+                raise HTTPException(status_code=401, detail="Invalid credentials")
+            token = create_access_token({"sub": str(user["id"])})
+            logger.info(f"User logged in successfully: {user['username']}")
+            return {"access_token": token, "token_type": "bearer"}
+        except Exception as e:
+            logger.error(f"Login error: {str(e)}")
+            raise HTTPException(status_code=500, detail="Internal server error")
 
 # Get current user
 @app.get("/users/me")
@@ -637,3 +648,7 @@ async def websocket_endpoint(websocket: WebSocket, token: str):
     except JWTError:
         await websocket.close(code=4001, reason="Invalid token")
         logger.warning("WebSocket connection rejected: Invalid token")
+
+if __name__ == "__main__":
+    port = int(os.getenv("PORT", 8000))
+    uvicorn.run(app, host="0.0.0.0", port=port)
