@@ -27,7 +27,7 @@ load_dotenv()
 DATABASE_URL = os.getenv("DATABASE_URL")
 SECRET_KEY = os.getenv("SECRET_KEY", "your-secure-secret-key-1234567890")
 # Fixed CORS_ORIGINS to use a single default value
-CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:3000,https://chitchat-client-nato.onrender.com").split(",")
+CORS_ORIGINS = os.getenv("CORS_ORIGINS", "https://chitchat-client-nato.onrender.com").split(",")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 1440
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
